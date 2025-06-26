@@ -1,3 +1,6 @@
+"scripts": {
+  "start": "node index.js"
+}
 {
   "name": "public-drive",
   "version": "1.0.0",
