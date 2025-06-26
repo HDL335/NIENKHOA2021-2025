@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Đang xác minh...</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      background: #f0f2f5;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding-top: 100px;
+      color: #333;
+    }
+    .spinner {
+      border: 8px solid #ddd;
+      border-top: 8px solid #3498db;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 30px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .message {
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+  <div class="spinner"></div>
+  <div class="message" id="msg">Đang xác minh bạn là con người...</div>
+  <div id="icon" style="font-size: 48px; margin-top: 20px;"></div>
+
+  <script>
+    function isBotUserAgent() {
+      const ua = navigator.userAgent.toLowerCase();
+      const botKeywords = ['bot', 'crawl', 'spider', 'scanner', 'python', 'curl', 'wget', 'httpclient'];
+      return botKeywords.some(bot => ua.includes(bot));
+    }
+
+    function fingerprintBrowser() {
+      return [
+        navigator.userAgent,
+        screen.width + 'x' + screen.height,
+        navigator.language,
+        new Date().getTimezoneOffset()
+      ].join('|');
+    }
+
+    async function verifyClient() {
+      const icon = document.getElementById('icon');
+
+      // Kiểm tra User-Agent
+      if (isBotUserAgent()) {
+        document.getElementById('msg').innerText = "❌ Truy cập bị từ chối: User-Agent không hợp lệ.";
+        icon.textContent = "❌";
+        return;
+      }
+
+      // Nếu không phải bot
+      document.cookie = `uam_verified=1; max-age=300; path=/`;
+      document.cookie = `fp=${btoa(fingerprintBrowser())}; max-age=300; path=/`;
+
+      document.getElementById('msg').innerText = "✅ Xác minh thành công! Đang chuyển tiếp...";
+      icon.textContent = "✅";
+
+      // Delay 3–5 giây
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 3000 + Math.random() * 2000);
+    }
+
+    verifyClient();
+  </script>
+
+</body>
+</html>

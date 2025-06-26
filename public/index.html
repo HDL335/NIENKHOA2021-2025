@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>NIÊN KHÓA 2021-2025</title>
+  <style>
+    body {
+      background: #000;
+      color: #fff;
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0 10px;
+    }
+    .file-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin-bottom: 40px;
+    }
+    .file-grid a {
+      display: block;
+      text-decoration: none;
+    }
+    .file-grid img {
+      width: 100%;
+      max-height: 200px;
+      object-fit: cover;
+      border-radius: 8px;
+      transition: 0.2s;
+    }
+    .file-grid img:hover {
+      transform: scale(1.03);
+    }
+    #upload-btn {
+      display: block;
+      width: 64px;
+      height: 64px;
+      margin: 30px auto;
+      cursor: pointer;
+    }
+    #upload-btn img {
+      width: 100%;
+      height: 100%;
+    }
+    input[type="file"] {
+      display: none;
+    }
+    #videoList {
+      max-width: 700px;
+      margin: 0 auto 60px;
+      padding: 20px;
+      font-family: monospace;
+      font-size: 14px;
+      color: #ccc;
+    }
+    h1, h2, h3 {
+      text-align: center;
+    }
+    a {
+      color: #0ff;
+    }
+  </style>
+
+  <!-- Giả lập Cloudflare UAM -->
+  <script>
+    if (!sessionStorage.getItem('uamPassed')) {
+      document.addEventListener('DOMContentLoaded', () => {
+        document.body.innerHTML = '<div style="color:white;text-align:center;padding:100px;font-size:20px">🔒 Vì lý do ổn định: đang kiểm tra bảo mật trình duyệt... 🛡️<br>Vui lòng đợi trong giây lát.⏳</div>';
+      });
+      setTimeout(() => {
+        sessionStorage.setItem('uamPassed', '1');
+        location.reload();
+      }, 3000); // thời gian chờ
+    }
+  </script>
+</head>
+
+<body>
+  <h1>📁 NIÊN KHÓA 2021-2025 💕</h1>
+  <h2>ADMIN WEBSITE: VŨ TRUNG HIẾU (HĐL)</h2>
+
+  <h3>👇 tải ảnh lên tại đây 👇</h3>
+  <label id="upload-btn">
+    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQVnugrHGnlqBHIyPnZ8WBg9Fdl-Teai90f9w&s" alt="upload">
+    <input type="file" id="fileInput" multiple>
+  </label>
+  <h3>☝️ tải ảnh lên tại đây ☝️</h3>
+
+  <div class="file-grid" id="imageList">Đang tải ảnh...</div>
+  <div id="videoList"></div>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const imageContainer = document.getElementById('imageList');
+    const videoContainer = document.getElementById('videoList');
+    let images = [];
+    let videos = [];
+    let loadedCount = 0;
+    const BATCH_SIZE = 15;
+
+    fileInput.addEventListener('change', () => {
+      const files = fileInput.files;
+      if (!files.length) return;
+
+      const formData = new FormData();
+      for (let i = 0; i < files.length; i++) {
+        formData.append('files', files[i]);
+      }
+
+      fetch('/upload', {
+        method: 'POST',
+        body: formData
+      }).then(res => {
+        if (res.ok) {
+          alert('Tải lên thành công!');
+          location.reload();
+        } else {
+          alert('Lỗi khi tải lên.');
+        }
+      });
+    });
+
+    function loadNextBatch() {
+      const next = images.slice(loadedCount, loadedCount + BATCH_SIZE);
+      next.forEach(file => {
+        const fileURL = '/files/' + file;
+        const wrapper = document.createElement('a');
+        wrapper.href = fileURL;
+        wrapper.download = '';
+        wrapper.title = file;
+
+        const img = document.createElement('img');
+        img.setAttribute('data-src', fileURL);
+        img.alt = '';
+        img.style.opacity = '0.5';
+
+        wrapper.appendChild(img);
+        imageContainer.appendChild(wrapper);
+        observer.observe(img);
+      });
+      loadedCount += BATCH_SIZE;
+    }
+
+    const observer = new IntersectionObserver((entries, obs) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const el = entry.target;
+          const src = el.getAttribute('data-src');
+          if (src) {
+            el.src = src;
+            el.removeAttribute('data-src');
+            el.style.opacity = '1';
+            if (el.tagName === 'VIDEO') el.load();
+          }
+          obs.unobserve(el);
+        }
+      });
+    }, { threshold: 0.1 });
+
+    async function init() {
+      const res = await fetch('/list');
+      const files = await res.json();
+      const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+      const videoExts = ['mp4', 'webm', 'ogg'];
+
+      images = files.filter(f => imageExts.includes(f.split('.').pop().toLowerCase()));
+      videos = files.filter(f => videoExts.includes(f.split('.').pop().toLowerCase()));
+
+      imageContainer.innerHTML = '';
+      videoContainer.innerHTML = '';
+      loadedCount = 0;
+
+      const preloadImages = () => {
+        loadNextBatch();
+        setTimeout(() => {
+          const bodyHeight = document.body.scrollHeight;
+          const windowHeight = window.innerHeight;
+          if (bodyHeight < windowHeight && loadedCount < images.length) {
+            preloadImages();
+          } else if (loadedCount >= images.length) {
+            loadVideos();
+          }
+        }, 200);
+      };
+
+      preloadImages();
+    }
+
+    function loadVideos() {
+      if (!videos.length) return;
+
+      const title = document.createElement('h3');
+      title.textContent = '📽️ Danh sách video:';
+      videoContainer.appendChild(title);
+
+      videos.forEach(file => {
+        const fileURL = '/files/' + file;
+        const wrapper = document.createElement('div');
+        wrapper.style.marginBottom = '20px';
+
+        const thumb = document.createElement('video');
+        thumb.setAttribute('data-src', fileURL);
+        thumb.muted = true;
+        thumb.playsInline = true;
+        thumb.style.width = '100%';
+        thumb.style.maxHeight = '200px';
+        thumb.style.borderRadius = '8px';
+        thumb.controls = false;
+
+        wrapper.appendChild(thumb);
+
+        const link = document.createElement('a');
+        link.href = fileURL;
+        link.download = file;
+        link.textContent = '⬇️ ' + file;
+        link.style.display = 'block';
+        link.style.textAlign = 'center';
+        link.style.marginTop = '8px';
+        wrapper.appendChild(link);
+
+        videoContainer.appendChild(wrapper);
+        observer.observe(thumb);
+      });
+    }
+
+    window.addEventListener('scroll', () => {
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 200) {
+        loadNextBatch();
+      }
+    });
+
+    init();
+  </script>
+</body>
+</html>
+
+
